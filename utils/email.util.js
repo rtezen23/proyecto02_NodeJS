@@ -54,11 +54,8 @@ class Email {
 		await this.send('welcome', 'Welcome to Academlo Store', { name });
 	}
 
-	async sendNewPost(title, content) {
-		await this.send('newPost', 'You have created a new post', {
-			title,
-			content,
-		});
+	async sendNewPurchase(dataProducts, total) {
+		await this.send('newPurchase', 'Thanks you for purchase! ', { dataProducts, total });
 	}
 }
 

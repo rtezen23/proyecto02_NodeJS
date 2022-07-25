@@ -3,6 +3,7 @@ const { ProductInCart } = require('../models/06-productInCart.model');
 const { Product } = require('../models/02-product.model');
 const { Order } = require('../models/05-order.model');
 
+const { Email } = require('../utils/email.util');
 const { AppError } = require('../utils/appError.util');
 
 const { catchAsync } = require('../utils/catchAsync.util');
@@ -88,15 +89,22 @@ const purchaseCart = catchAsync(async (req, res, next) => {
     const cartProducts = await ProductInCart.findAll({ where: { cartId: userCart.id, status: 'active' } });
 
     let totalPrice = 0;
+    let purchaseData = [];
 
     const cartProductsPromises = cartProducts.map(async cartProduct => {
+        let purchaseItem = { name: '', price: 0, quantity: 0 };
         const product = await Product.findOne({ where: { id: cartProduct.productId } })
+        purchaseItem.name = product.title;
+        purchaseItem.price = product.price;
+        purchaseItem.quantity = cartProduct.quantity;
+        purchaseData.push(purchaseItem);
         await product.update({ quantity: product.quantity - cartProduct.quantity });
         totalPrice += cartProduct.quantity * product.price;
         await cartProduct.update({ status: 'purchased' })
     });
 
     await Promise.all(cartProductsPromises);
+    console.log(purchaseData);
 
     await userCart.update({ status: 'purchased' })
 
@@ -106,10 +114,14 @@ const purchaseCart = catchAsync(async (req, res, next) => {
         totalPrice
     })
 
+    await new Email(sessionUser.email).sendNewPurchase(purchaseData, totalPrice);
+
+
     res.status(201).json({
         status: 'success',
         newOrder,
     });
+
 });
 
 module.exports = {
